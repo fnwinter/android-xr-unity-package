@@ -29,10 +29,7 @@ namespace Google.XR.Extensions.Samples.XRController
     /// </summary>
     public class XRControllerDisplay : MonoBehaviour
     {
-        private readonly List<(InputAction action,
-            Action<InputAction.CallbackContext> onStarted,
-            Action<InputAction.CallbackContext> onPerformed,
-            Action<InputAction.CallbackContext> onCanceled)> _bindings = new ();
+        private readonly List<BindingInfo> _bindings = new List<BindingInfo>();
 
 #pragma warning disable CS0649 // Serialized fields don't need assignment.
         [Header("Buttons")]
@@ -90,26 +87,26 @@ namespace Google.XR.Extensions.Samples.XRController
 
         private void OnDisable()
         {
-            foreach (var (action, onStarted, onPerformed, onCanceled) in _bindings)
+            foreach (var binding in _bindings)
             {
-                if (action == null)
+                if (binding.Action == null)
                 {
                     continue;
                 }
 
-                if (onStarted != null)
+                if (binding.OnStarted != null)
                 {
-                    action.started -= onStarted;
+                    binding.Action.started -= binding.OnStarted;
                 }
 
-                if (onPerformed != null)
+                if (binding.OnPerformed != null)
                 {
-                    action.performed -= onPerformed;
+                    binding.Action.performed -= binding.OnPerformed;
                 }
 
-                if (onCanceled != null)
+                if (binding.OnCanceled != null)
                 {
-                    action.canceled -= onCanceled;
+                    binding.Action.canceled -= binding.OnCanceled;
                 }
             }
 
@@ -140,7 +137,8 @@ namespace Google.XR.Extensions.Samples.XRController
             action.started += started;
             action.canceled += canceled;
 
-            _bindings.Add((action, started, null, canceled));
+            _bindings.Add(
+                new BindingInfo { Action = action, OnStarted = started, OnCanceled = canceled });
         }
 
         private void BindAxis(InputAction action, XrControllerButtonInfo target)
@@ -157,7 +155,12 @@ namespace Google.XR.Extensions.Samples.XRController
             action.performed += performed;
             action.canceled += canceled;
 
-            _bindings.Add((action, null, performed, canceled));
+            _bindings.Add(new BindingInfo
+            {
+                Action = action,
+                OnPerformed = performed,
+                OnCanceled = canceled
+            });
         }
 
         private void BindThumbstickVector2(InputAction action, Transform stickTransform)
@@ -191,7 +194,12 @@ namespace Google.XR.Extensions.Samples.XRController
             action.performed += performed;
             action.canceled += canceled;
 
-            _bindings.Add((action, null, performed, canceled));
+            _bindings.Add(new BindingInfo
+            {
+                Action = action,
+                OnPerformed = performed,
+                OnCanceled = canceled
+            });
         }
 
         private void EnableActions(params InputAction[] actions)
@@ -223,6 +231,14 @@ namespace Google.XR.Extensions.Samples.XRController
             {
                 _thumbstickTransform.localRotation = _thumbstickInitialRotation;
             }
+        }
+
+        private struct BindingInfo
+        {
+            public InputAction Action;
+            public Action<InputAction.CallbackContext> OnStarted;
+            public Action<InputAction.CallbackContext> OnPerformed;
+            public Action<InputAction.CallbackContext> OnCanceled;
         }
     }
 
